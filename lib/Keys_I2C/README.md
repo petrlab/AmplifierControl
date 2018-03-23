@@ -12,7 +12,7 @@ void setup()
 {
 	Serial.begin(9600);
   
-  Keys.init(keysAddressI2C, 2, 1, 4, 8, 2);
+  	Keys.init(keysAddressI2C, 2, 1, 4, 8, 2);
 		 |          |  |  |  |  |
 		 |          |  |  |  |  +------- ON/OFF Power key code 2^1 where 1 is first bit
 		 |          |  |  |  +---------- ENTER (bit 4) 
