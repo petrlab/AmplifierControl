@@ -1,0 +1,61 @@
+{
+    "description": "Generic menu/interactivity system", 
+    "repository": {
+        "url": "https://github.com/neu-rah/ArduinoMenu", 
+        "type": "git"
+    }, 
+    "platforms": [
+        "atmelavr", 
+        "atmelsam", 
+        "espressif32", 
+        "espressif8266", 
+        "intel_arc32", 
+        "microchippic32", 
+        "nordicnrf51", 
+        "nordicnrf52", 
+        "ststm32", 
+        "teensy", 
+        "timsp430"
+    ], 
+    "export": {
+        "exclude": [
+            "extras", 
+            "docs", 
+            "tests", 
+            "test", 
+            "*.doxyfile", 
+            "*.pdf"
+        ], 
+        "include": null
+    }, 
+    "authors": [
+        {
+            "maintainer": false, 
+            "name": "Rui Azevedo", 
+            "url": null, 
+            "email": null
+        }, 
+        {
+            "maintainer": true, 
+            "name": "ruihfazevedo@gmail.com", 
+            "url": null, 
+            "email": null
+        }, 
+        {
+            "maintainer": true, 
+            "name": "neu-rah", 
+            "url": null, 
+            "email": null
+        }
+    ], 
+    "keywords": [
+        "display"
+    ], 
+    "id": 1468, 
+    "name": "ArduinoMenu library", 
+    "frameworks": [
+        "arduino"
+    ], 
+    "version": "4.5.0", 
+    "homepage": null
+}

@@ -1,0 +1,46 @@
+{
+    "description": "A library for driving LiquidCrystal displays (LCD) by using the I2C bus and an PCF8574 I2C adapter.", 
+    "repository": {
+        "url": "https://github.com/mathertel/LiquidCrystal_PCF8574", 
+        "type": "git"
+    }, 
+    "platforms": [
+        "atmelavr", 
+        "atmelsam", 
+        "espressif8266", 
+        "intel_arc32", 
+        "microchippic32", 
+        "nordicnrf51", 
+        "teensy", 
+        "timsp430"
+    ], 
+    "export": {
+        "exclude": [
+            "extras", 
+            "docs", 
+            "tests", 
+            "test", 
+            "*.doxyfile", 
+            "*.pdf"
+        ], 
+        "include": null
+    }, 
+    "authors": [
+        {
+            "maintainer": true, 
+            "name": "Matthias Hertel", 
+            "url": null, 
+            "email": "www.mathertel.de"
+        }
+    ], 
+    "keywords": [
+        "communication"
+    ], 
+    "id": 1165, 
+    "name": "LiquidCrystal_PCF8574", 
+    "frameworks": [
+        "arduino"
+    ], 
+    "version": "1.1.0", 
+    "homepage": "http://www.mathertel.de/Arduino/LiquidCrystal_PCF8574.aspx"
+}
