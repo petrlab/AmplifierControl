@@ -1,6 +1,9 @@
 #include <Arduino.h>
+#include <EEPROM.h>
 #include <Wire.h>
+//Matthias Hertel driver https://github.com/mathertel/LiquidCrystal_PCF8574
 #include <LiquidCrystal_PCF8574.h>
+//Rui Azevedo ArduinoMenu 4. https://github.com/neu-rah/ArduinoMenu
 #include <menuIO/PCF8574Out.h>//arduino I2C LCD
 #include <menu.h>
 #include <menuIO/serialOut.h>
@@ -13,12 +16,18 @@ using namespace Menu;
 #define LEDPIN LED_BUILTIN
 #define MAX_DEPTH 2
 
-LiquidCrystal_PCF8574 lcd(0x27);
-
 #define K_UP     0
 #define K_DOWN   4
 #define K_ESC    2
 #define K_ENTER  3
+
+enum State{
+	LUFTER_ON = 0,
+	HEIZUNG_ON = 1,
+	HV_ON = 2,
+	LUFTER_OFF = 3,
+	HEIZUNG_OFF = 4
+};
 
 keyMap myBtn_map[]={
                       {K_UP,options->getCmdChar(upCmd)},
@@ -28,79 +37,146 @@ keyMap myBtn_map[]={
                     };
 PCF8574KeyIn<5,0x21> myButton(myBtn_map);
 
+LiquidCrystal_PCF8574 lcd(0x27);
 
-int lufterTimeDelayOn=30;
-int heizungTimeDelayOn=180;
-int nvTimeDelayOn = 10;
-int lufterTimeDelayOff=60;
-int heizungTimeDelayOff=30;
+const char *devName[] = {"Lufter ", "Heizung"};
+int timeDelay[5];
+// int lufterTimeDelayOn;
+// int heizungTimeDelayOn;
+// int nvTimeDelayOn;
+// int lufterTimeDelayOff;
+// int heizungTimeDelayOff;
 
 int ledCtrl=LOW;
 
-result myLedOn() {
-  ledCtrl=HIGH;
-  return proceed;
-}
-result myLedOff() {
-  ledCtrl=LOW;
+volatile bool isMenuEnable;
+volatile bool isMenuVisiable;
+
+result LufterOn() {
+  EEPROM.update(0, highByte(timeDelay[LUFTER_ON]));
+  EEPROM.update(1, lowByte(timeDelay[LUFTER_ON]));
   return proceed;
 }
 
+result HeizungOn() {
+  EEPROM.update(2, highByte(timeDelay[HEIZUNG_ON]));
+  EEPROM.update(3, lowByte(timeDelay[HEIZUNG_ON]));
+  return proceed;
+}
+
+result HVOn() {
+  EEPROM.update(4, highByte(timeDelay[HV_ON]));
+  EEPROM.update(5, lowByte(timeDelay[HV_ON]));
+  return proceed;
+}
+
+result LufterOff() {
+  EEPROM.update(6, highByte(timeDelay[LUFTER_OFF]));
+  EEPROM.update(7, lowByte(timeDelay[LUFTER_OFF]));
+  return proceed;
+}
+
+result HeizungOff() {
+  EEPROM.update(8, highByte(timeDelay[HEIZUNG_OFF]));
+  EEPROM.update(9, lowByte(timeDelay[HEIZUNG_OFF]));
+  return proceed;
+}
+
+result setTimeDelayToDefault() {
+	timeDelay[LUFTER_ON]=30;
+	timeDelay[HEIZUNG_ON]=180;
+	timeDelay[HV_ON] = 10;
+	timeDelay[LUFTER_OFF]=60;
+	timeDelay[HEIZUNG_OFF]=30;
+
+	LufterOn();
+	HeizungOn();
+	HVOn();
+	LufterOff();
+	HeizungOff();
+
+	return proceed;
+}
+
 MENU(subMenuOn, "TIME DELAY ON", Menu::doNothing, Menu::noEvent, Menu::wrapStyle
-  ,FIELD(lufterTimeDelayOn,"Lufter ","s",30,300,10,1, myLedOn, exitEvent, Menu::noStyle)
-  ,FIELD(heizungTimeDelayOn,"Heizung","s",180,300,10,1,myLedOff, exitEvent, Menu::noStyle)
-  ,FIELD(nvTimeDelayOn,"HV     ","s",5,300,10,1,Menu::doNothing, Menu::noEvent, Menu::noStyle)
+  ,FIELD(timeDelay[LUFTER_ON],"Lufter ","s",30,300,10,1, LufterOn, updateEvent, Menu::noStyle)
+  ,FIELD(timeDelay[HEIZUNG_ON],"Heizung","s",180,300,10,1,HeizungOn, updateEvent, Menu::noStyle)
+  ,FIELD(timeDelay[HV_ON],"HV     ","s",5,300,10,1,HVOn, updateEvent, Menu::noStyle)
 	,EXIT("Back")
 );
 
 MENU(subMenuOff, "TIME DELAY OFF", Menu::doNothing, Menu::noEvent, Menu::wrapStyle
-  ,FIELD(lufterTimeDelayOff,"Lufter ","s",60,300,10,1, Menu::doNothing, Menu::noEvent, Menu::noStyle)
-  ,FIELD(heizungTimeDelayOff,"Heizung","s",30,300,10,1,Menu::doNothing, Menu::noEvent, Menu::noStyle)
+  ,FIELD(timeDelay[LUFTER_OFF],"Lufter ","s",60,300,10,1, LufterOff, updateEvent, Menu::noStyle)
+  ,FIELD(timeDelay[HEIZUNG_OFF],"Heizung","s",30,300,10,1,HeizungOff, updateEvent, Menu::noStyle)
 	,EXIT("Back")
 );
 
 MENU(mainMenu, "    DELAY SETUP", Menu::doNothing, Menu::noEvent, Menu::wrapStyle
 	,SUBMENU(subMenuOn)
 	,SUBMENU(subMenuOff)
-  // ,FIELD(lufterTimeDelay,"Lufter ","s",30,60,10,1, Menu::doNothing, Menu::noEvent, Menu::noStyle)
-  // ,FIELD(heizungTimeDelay,"Heizung","s",180,300,10,1,Menu::doNothing, Menu::noEvent, Menu::noStyle)
-  // ,FIELD(nvTimeDelay,"HV     ","s",5,300,10,1,Menu::doNothing, Menu::noEvent, Menu::noStyle)
-  //,OP("LED On",myLedOn,enterEvent)
-  //,OP("LED Off",myLedOff,enterEvent)
+	,OP("DEFAULT", setTimeDelayToDefault, Menu::enterEvent)
   ,EXIT("Exit")
 );
 
-//serialIn serial(Serial);
-//MENU_INPUTS(in,&serial);
 MENU_INPUTS(in,&myButton);
 
 MENU_OUTPUTS(out,MAX_DEPTH
   ,LCD_OUT(lcd,{0,0,20,4})
   ,NONE
 );
-// MENU_OUTPUTS(out,MAX_DEPTH
-//   ,SERIAL_OUT(Serial)
-//   ,NONE//must have 2 items at least
-// );
 
 NAVROOT(nav,mainMenu,MAX_DEPTH,in,out);
 
+void delaySeconds(unsigned long timeSeconds){
+	for(unsigned long i = 0; i < timeSeconds * 1000; i++)
+	{
+		delayMicroseconds(1000);
+	};
+}
+
 void setup() {
+	isMenuEnable = true;
+
   pinMode(LEDPIN, OUTPUT);
+
+	timeDelay[LUFTER_ON]=EEPROM.read(0)<<8 | EEPROM.read(1);
+	timeDelay[HEIZUNG_ON]=EEPROM.read(2)<<8 | EEPROM.read(3);
+	timeDelay[HV_ON] = EEPROM.read(4)<<8 | EEPROM.read(5);
+	timeDelay[LUFTER_OFF]=EEPROM.read(6)<<8 | EEPROM.read(7);
+	timeDelay[HEIZUNG_OFF]=EEPROM.read(8)<<8 | EEPROM.read(9);
 
 	lcd.begin(20,4);
   lcd.setBacklight(255);
 	nav.showTitle = true;
-	nav.doNav(navCmd(downCmd));
+	nav.useUpdateEvent = true;
+	nav.idleOn();
 
-  Serial.begin(115200);
-  while(!Serial);
-  Serial.println("Menu 4.x");
-  Serial.println("Use keys + - * /");
-  Serial.println("to control the menu navigation");
+	//nav.doNav(navCmd(downCmd));
+
+   Serial.begin(115200);
+   while(!Serial);
+	// Serial.println(devName[0]);
+  // Serial.println(devName[1]);
+  // Serial.println("Menu 4.x");
+  // Serial.println("Use keys + - * /");
+  // Serial.println("to control the menu navigation");
 }
 
+int count = 0;
+
 void loop() {
-  nav.poll();
-  digitalWrite(LEDPIN, ledCtrl);
+	if (isMenuEnable)
+	{
+		nav.poll();
+		if (nav.sleepTask)
+		{
+			isMenuVisiable = false;
+			lcd.setCursor(2, 1);
+			lcd.print("Ready. Let's go.");
+		}
+		else{
+			isMenuVisiable = true;
+		};
+	};
+	digitalWrite(LEDPIN, ledCtrl);
 }
