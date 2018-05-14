@@ -14,6 +14,10 @@
 using namespace Menu;
 
 #define LEDPIN LED_BUILTIN
+#define LUFTERPIN A1
+#define HEIZUNGPIN A2
+#define HVPIN A3
+#define START_BUTTON_PIN 2
 #define MAX_DEPTH 2
 
 #define K_UP     0
@@ -51,6 +55,10 @@ int ledCtrl=LOW;
 
 volatile bool isMenuEnable;
 volatile bool isMenuVisiable;
+unsigned long prevMillis = 0;
+bool isSystemStart;
+bool isSystemStop;
+bool isSystemOn;
 
 result LufterOn() {
   EEPROM.update(0, highByte(timeDelay[LUFTER_ON]));
@@ -134,10 +142,68 @@ void delaySeconds(unsigned long timeSeconds){
 	};
 }
 
+void switchOnDevices(){
+	digitalWrite(LUFTERPIN, LOW);
+	lcd.clear();
+	lcd.setCursor(0, 1);
+	lcd.print("   LUFTER IS ON     ");
+	lcd.setCursor(2, 2);
+	lcd.print("waiting: ");
+	lcd.print(timeDelay[LUFTER_ON]);
+	lcd.print(" sec");
+
+	delaySeconds(timeDelay[LUFTER_ON]);
+	digitalWrite(HEIZUNGPIN, LOW);
+	lcd.clear();
+	lcd.setCursor(0, 1);
+	lcd.print("   HEIZUNG IS ON    ");		
+	lcd.setCursor(2, 2);
+	lcd.print("waiting: ");
+	lcd.print(timeDelay[HEIZUNG_ON]);
+	lcd.print(" sec");
+
+	delaySeconds(timeDelay[HEIZUNG_ON]);
+	digitalWrite(HVPIN, LOW);
+	lcd.clear();
+	lcd.setCursor(0, 1);
+	lcd.print("      HV IS ON      ");		
+	lcd.setCursor(2, 2);
+	lcd.print("waiting: ");
+	lcd.print(timeDelay[HV_ON]);
+	lcd.print(" sec");
+
+	delaySeconds(timeDelay[HV_ON]);
+	lcd.clear();
+	lcd.setCursor(0, 1);
+	lcd.print("       READY        ");
+}
+
+void StartEvent(){
+	if (millis() > prevMillis + 50){
+		if (!isMenuVisiable){
+			isMenuEnable = false;
+			isSystemStart = !isSystemOn;
+			isSystemStop = isSystemOn;
+		}
+		prevMillis = millis();
+	}
+
+}
+
 void setup() {
 	isMenuEnable = true;
+	isSystemStart = false;
+	isSystemStop = false;
+	isSystemOn = false;
 
   pinMode(LEDPIN, OUTPUT);
+  
+	pinMode(LUFTERPIN, OUTPUT);
+	digitalWrite(LUFTERPIN,HIGH);
+  pinMode(HEIZUNGPIN, OUTPUT);
+  digitalWrite(HEIZUNGPIN, OUTPUT);
+  pinMode(HVPIN, OUTPUT);
+	digitalWrite(HVPIN, OUTPUT);
 
 	timeDelay[LUFTER_ON]=EEPROM.read(0)<<8 | EEPROM.read(1);
 	timeDelay[HEIZUNG_ON]=EEPROM.read(2)<<8 | EEPROM.read(3);
@@ -145,11 +211,14 @@ void setup() {
 	timeDelay[LUFTER_OFF]=EEPROM.read(6)<<8 | EEPROM.read(7);
 	timeDelay[HEIZUNG_OFF]=EEPROM.read(8)<<8 | EEPROM.read(9);
 
+	pinMode(START_BUTTON_PIN, INPUT_PULLUP);
+	attachInterrupt(digitalPinToInterrupt(START_BUTTON_PIN), StartEvent, CHANGE);
+
 	lcd.begin(20,4);
   lcd.setBacklight(255);
 	nav.showTitle = true;
 	nav.useUpdateEvent = true;
-	nav.idleOn();
+	//nav.idleOn();
 
 	//nav.doNav(navCmd(downCmd));
 
@@ -177,6 +246,17 @@ void loop() {
 		else{
 			isMenuVisiable = true;
 		};
+	}
+	else if (isSystemStart)
+	{
+		switchOnDevices();
+		isSystemStart = false;
+		isSystemOn = true;
+		isMenuEnable = true;
+	}
+	else if (isSystemStop)
+	{
 	};
+
 	digitalWrite(LEDPIN, ledCtrl);
 }
