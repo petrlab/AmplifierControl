@@ -106,24 +106,26 @@ result setTimeDelayToDefault() {
 	return proceed;
 }
 
-MENU(subMenuOn, "TIME DELAY ON", Menu::doNothing, Menu::noEvent, Menu::wrapStyle
+MENU(subMenuOn, "ZEIT AN", Menu::doNothing, Menu::noEvent, Menu::wrapStyle
   ,FIELD(timeDelay[LUFTER_ON],"Lufter ","s",30,300,10,1, LufterOn, updateEvent, Menu::noStyle)
-  ,FIELD(timeDelay[HEIZUNG_ON],"Heizung","s",180,300,10,1,HeizungOn, updateEvent, Menu::noStyle)
-  ,FIELD(timeDelay[HV_ON],"HV     ","s",5,300,10,1,HVOn, updateEvent, Menu::noStyle)
-	,EXIT("Back")
+  //,FIELD(timeDelay[HEIZUNG_ON],"Heizung","s",180,300,10,1,HeizungOn, updateEvent, Menu::noStyle)
+  ,FIELD(timeDelay[HEIZUNG_ON],"Heizung","s",10,300,10,1,HeizungOn, updateEvent, Menu::noStyle) // for debug only
+  ,FIELD(timeDelay[HV_ON],"HS     ","s",5,300,10,1,HVOn, updateEvent, Menu::noStyle)
+	,EXIT("Zurueck")
 );
 
-MENU(subMenuOff, "TIME DELAY OFF", Menu::doNothing, Menu::noEvent, Menu::wrapStyle
-  ,FIELD(timeDelay[LUFTER_OFF],"Lufter ","s",60,300,10,1, LufterOff, updateEvent, Menu::noStyle)
+MENU(subMenuOff, "ZEIT AUS", Menu::doNothing, Menu::noEvent, Menu::wrapStyle
+//  ,FIELD(timeDelay[LUFTER_OFF],"Lufter ","s",60,300,10,1, LufterOff, updateEvent, Menu::noStyle)
+  ,FIELD(timeDelay[LUFTER_OFF],"Lufter ","s",10,300,10,1, LufterOff, updateEvent, Menu::noStyle) // for debug only
   ,FIELD(timeDelay[HEIZUNG_OFF],"Heizung","s",30,300,10,1,HeizungOff, updateEvent, Menu::noStyle)
-	,EXIT("Back")
+	,EXIT("Zurueck")
 );
 
-MENU(mainMenu, "    DELAY SETUP", Menu::doNothing, Menu::noEvent, Menu::wrapStyle
+MENU(mainMenu, "   KONFIGURATION", Menu::doNothing, Menu::noEvent, Menu::wrapStyle
 	,SUBMENU(subMenuOn)
 	,SUBMENU(subMenuOff)
 	,OP("DEFAULT", setTimeDelayToDefault, Menu::enterEvent)
-  ,EXIT("Exit")
+  ,EXIT("Beenden")
 );
 
 MENU_INPUTS(in,&myButton);
@@ -146,9 +148,9 @@ void switchOnDevices(){
 	digitalWrite(LUFTERPIN, LOW);
 	lcd.clear();
 	lcd.setCursor(0, 1);
-	lcd.print("   LUFTER IS ON     ");
-	lcd.setCursor(2, 2);
-	lcd.print("waiting: ");
+	lcd.print("   LUFTER IST AN    ");
+	lcd.setCursor(3, 3);
+	lcd.print("warten: ");
 	lcd.print(timeDelay[LUFTER_ON]);
 	lcd.print(" sec");
 
@@ -156,9 +158,9 @@ void switchOnDevices(){
 	digitalWrite(HEIZUNGPIN, LOW);
 	lcd.clear();
 	lcd.setCursor(0, 1);
-	lcd.print("   HEIZUNG IS ON    ");		
-	lcd.setCursor(2, 2);
-	lcd.print("waiting: ");
+	lcd.print("   HEIZUNG IST AN   ");		
+	lcd.setCursor(3, 3);
+	lcd.print("warten: ");
 	lcd.print(timeDelay[HEIZUNG_ON]);
 	lcd.print(" sec");
 
@@ -166,18 +168,40 @@ void switchOnDevices(){
 	digitalWrite(HVPIN, LOW);
 	lcd.clear();
 	lcd.setCursor(0, 1);
-	lcd.print("      HV IS ON      ");		
-	lcd.setCursor(2, 2);
-	lcd.print("waiting: ");
+	lcd.print("    HS LIEGT AN     ");		
+	lcd.setCursor(3, 3);
+	lcd.print("warten: ");
 	lcd.print(timeDelay[HV_ON]);
 	lcd.print(" sec");
 
 	delaySeconds(timeDelay[HV_ON]);
 	lcd.clear();
-	lcd.setCursor(0, 1);
-	lcd.print("       READY        ");
 }
 
+void switchOffDevices(){
+	digitalWrite(HVPIN, HIGH);
+	lcd.clear();
+	lcd.setCursor(0, 1);
+	lcd.print("    HS LIEGT AUS    ");		
+	lcd.setCursor(3, 3);
+	lcd.print("warten: ");
+	lcd.print(timeDelay[HEIZUNG_OFF]);
+	lcd.print(" sec");
+
+	delaySeconds(timeDelay[HEIZUNG_OFF]);
+	digitalWrite(HEIZUNGPIN, HIGH);
+	lcd.clear();
+	lcd.setCursor(0, 1);
+	lcd.print("  HEIZUNG IST AUF   ");		
+	lcd.setCursor(3, 3);
+	lcd.print("warten: ");
+	lcd.print(timeDelay[LUFTER_OFF]);
+	lcd.print(" sec");
+
+	delaySeconds(timeDelay[LUFTER_OFF]);
+	digitalWrite(LUFTERPIN, HIGH);
+	lcd.clear();
+}
 void StartEvent(){
 	if (millis() > prevMillis + 50){
 		if (!isMenuVisiable){
@@ -196,8 +220,9 @@ void setup() {
 	isSystemStop = false;
 	isSystemOn = false;
 
-  pinMode(LEDPIN, OUTPUT);
+  //pinMode(LEDPIN, OUTPUT);
   
+	//Set all relays to off
 	pinMode(LUFTERPIN, OUTPUT);
 	digitalWrite(LUFTERPIN,HIGH);
   pinMode(HEIZUNGPIN, OUTPUT);
@@ -205,12 +230,14 @@ void setup() {
   pinMode(HVPIN, OUTPUT);
 	digitalWrite(HVPIN, OUTPUT);
 
+	//Restore time delay from EEPROM
 	timeDelay[LUFTER_ON]=EEPROM.read(0)<<8 | EEPROM.read(1);
 	timeDelay[HEIZUNG_ON]=EEPROM.read(2)<<8 | EEPROM.read(3);
 	timeDelay[HV_ON] = EEPROM.read(4)<<8 | EEPROM.read(5);
 	timeDelay[LUFTER_OFF]=EEPROM.read(6)<<8 | EEPROM.read(7);
 	timeDelay[HEIZUNG_OFF]=EEPROM.read(8)<<8 | EEPROM.read(9);
 
+	//Set interrupt for start button
 	pinMode(START_BUTTON_PIN, INPUT_PULLUP);
 	attachInterrupt(digitalPinToInterrupt(START_BUTTON_PIN), StartEvent, CHANGE);
 
@@ -218,7 +245,7 @@ void setup() {
   lcd.setBacklight(255);
 	nav.showTitle = true;
 	nav.useUpdateEvent = true;
-	//nav.idleOn();
+	nav.idleOn();
 
 	//nav.doNav(navCmd(downCmd));
 
@@ -240,8 +267,15 @@ void loop() {
 		if (nav.sleepTask)
 		{
 			isMenuVisiable = false;
-			lcd.setCursor(2, 1);
-			lcd.print("Ready. Let's go.");
+			if (!isSystemOn){
+				lcd.setCursor(0, 1);
+				lcd.print("Fertig. Lass & gehen");
+			}
+			else
+			{
+				lcd.setCursor(0, 1);
+				lcd.print("      ALLES AN      ");
+			};
 		}
 		else{
 			isMenuVisiable = true;
@@ -256,7 +290,11 @@ void loop() {
 	}
 	else if (isSystemStop)
 	{
+		switchOffDevices();
+		isSystemStop = false;
+		isSystemOn = false;
+		isMenuEnable = true;
 	};
 
-	digitalWrite(LEDPIN, ledCtrl);
+//	digitalWrite(LEDPIN, ledCtrl);
 }
